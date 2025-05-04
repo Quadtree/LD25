@@ -35,11 +35,10 @@ export class FlamePedistal extends Actor {
 
 		this._cooldown--;
 
-		// @TODO
-		// if (this._cooldown <= 0)
-		// 	this._image.texture = Assets.s.flamepedistal_ready;
-		// else
-		// 	this._image.texture = Assets.s.flamepedistal;
+		if (this._cooldown <= 0)
+			this.textureSwap("flamepedistal_ready");
+		else
+			this.textureSwap("flamepedistal");
 
 		if (this._cooldown <= 0) {
 			var target: Unit | null = null;

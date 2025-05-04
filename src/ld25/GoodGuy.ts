@@ -9,12 +9,12 @@ import { Unit } from "./Unit";
 	{
 		protected override get categoryBits():uint
 		{
-			return 0x10000000;
+			return 0x1;
 		}
 
 		protected override get maskBits():uint
 		{
-			return 0x10000000;
+			return 0x1;
 		}
 
 		public override get isGood():Boolean

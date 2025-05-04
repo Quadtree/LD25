@@ -66,6 +66,7 @@ export async function loadTextures(scene: Scene) {
 		loadTexture("../lib/help.png", "help"),
 		loadTexture("../lib/victory.png", "victory"),
 		loadTexture("../lib/lose.png", "lose"),
+		loadTexture("../lib/solid.png", "solid"),
 	]);
 
 	return ret;

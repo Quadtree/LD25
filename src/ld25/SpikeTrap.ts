@@ -27,11 +27,10 @@ export class SpikeTrap extends Actor {
 
 		this._charge--;
 
-		// @TODO
-		// if (this._charge <= 0)
-		// 	this._image.texture = Assets.s.spiketrap_ready;
-		// else
-		// 	this._image.texture = Assets.s.spiketrap;
+		if (this._charge <= 0)
+			this.textureSwap("spiketrap_ready");
+		else
+			this.textureSwap("spiketrap");
 	}
 
 	public override beginContact(other: Actor): void {

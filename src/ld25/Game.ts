@@ -8,6 +8,8 @@ import { Hut } from "./Hut";
 import { Villager } from "./Villager";
 import { Keyboard } from "./Keyboard";
 import { Cleric, Knight, Rogue } from "./ActorFactory";
+import { AdvancedDynamicTexture, Image, Rectangle, TextBlock } from "@babylonjs/gui";
+import { addVectors } from "./util";
 
 export class Game {
 	// @TODO
@@ -33,6 +35,9 @@ export class Game {
 	_camPos: Box2DT.b2Vec2 = new Box2D.b2Vec2();
 
 	_gold: int = 0;
+
+	_modalScreen: Image | null = null;
+	_modalSubscreens: Image[] = [];
 
 	// @TODO
 	// protected _goldDisplay: TextField = new TextField(300, 30, "Gold", "Verdana", 20, 0xFFFFFF00);
@@ -86,9 +91,11 @@ export class Game {
 	private _title?: Sprite;
 
 	public scene: Scene;
+	public ui: AdvancedDynamicTexture;
 
 	public constructor(scene: Scene) {
 		this.scene = scene;
+		this.ui = AdvancedDynamicTexture.CreateFullscreenUI("MainUI");
 		Game.s = this;
 
 		console.log(this._world);
@@ -332,6 +339,24 @@ export class Game {
 		*/
 
 		//createWorldEdge(new b2Vec2(6 * 4, (MAP_HEIGHT / 2) * 4), new b2Vec2(4, MAP_HEIGHT));
+
+		// const img = new Image(undefined, "assets/ld25/solid.png");
+		// img.leftInPixels = this.ui.getSize().width / 2 - 100;
+		// img.widthInPixels = 10;
+		// img.heightInPixels = 10;
+		// this.ui.addControl(img);
+
+
+		// const tb = new TextBlock(undefined, "Test!");
+		// tb.left = 100;
+		// this.ui.addControl(tb);
+
+		// const minimapRect = new Rectangle();
+		// minimapRect.width = 200;
+		// minimapRect.height = 200;
+
+		this.showScreen("help");
+		this.showScreen("title");
 	}
 
 	private createWorldEdge(start: Box2DT.b2Vec2, end: Box2DT.b2Vec2): void {
@@ -353,7 +378,7 @@ export class Game {
 	public update(): void {
 		this._msDone += 16;
 
-		if (this._title || this._help || this._victory || this._lose) return;
+		if (this._modalScreen) return;
 
 		this._world.Step(0.016, 1, 1);
 
@@ -388,10 +413,7 @@ export class Game {
 		*/
 
 		if (this._nextWave >= this.WAVES.length && !enemiesAlive) {
-			// @TODO
-			console.log("YOU WIN")
-			// this._victory = new Image(Assets.s.victory);
-			// addChild(_victory);
+			this.showScreen("victory")
 		}
 
 		this._spawnTimer--;
@@ -401,9 +423,9 @@ export class Game {
 
 			var spawnPoint: Box2DT.b2Vec2 = new Box2D.b2Vec2((7 + Math.round(Math.random()) * (this.MAP_WIDTH - 7 - 7)) * 4, (7 + Math.round(Math.random()) * (this.MAP_WIDTH - 7 - 7)) * 4);
 
-			if ("knight" in this.WAVES[this._nextWave]) for (i = 0; i < (this.WAVES[this._nextWave].knight ?? 0); ++i) this._actors.push(new Knight(spawnPoint));
-			if ("rogue" in this.WAVES[this._nextWave]) for (i = 0; i < (this.WAVES[this._nextWave].rogue ?? 0); ++i) this._actors.push(new Rogue(spawnPoint));
-			if ("cleric" in this.WAVES[this._nextWave]) for (i = 0; i < (this.WAVES[this._nextWave].cleric ?? 0); ++i) this._actors.push(new Cleric(spawnPoint));
+			if ("knight" in this.WAVES[this._nextWave]) for (i = 0; i < (this.WAVES[this._nextWave].knight ?? 0); ++i) this._actors.push(new Knight(addVectors(spawnPoint, new Box2D.b2Vec2(Math.random() - 0.5, Math.random() - 0.5))));
+			if ("rogue" in this.WAVES[this._nextWave]) for (i = 0; i < (this.WAVES[this._nextWave].rogue ?? 0); ++i) this._actors.push(new Rogue(addVectors(spawnPoint, new Box2D.b2Vec2(Math.random() - 0.5, Math.random() - 0.5))));
+			if ("cleric" in this.WAVES[this._nextWave]) for (i = 0; i < (this.WAVES[this._nextWave].cleric ?? 0); ++i) this._actors.push(new Cleric(addVectors(spawnPoint, new Box2D.b2Vec2(Math.random() - 0.5, Math.random() - 0.5))));
 
 			this._nextWave++;
 			this._spawnTimer = 45 * 60;
@@ -415,26 +437,23 @@ export class Game {
 		}
 
 		if (!this._player.keep()) {
-			this._lose = new Sprite("", Assets.s.tex("lose"));
+			this.showScreen("lose");
+			//this._lose = new Sprite("", Assets.s.tex("lose"));
 			//addChild(_lose);
 		}
 
-		// @TODO
-		/*
-		if (enemiesAlive && _ambientSoundChannel) {
-			_ambientSoundChannel.stop();
-			_ambientSoundChannel = null;
-
-			_battleSoundChannel = Assets.s.snd("battle").play(0, 1000);
+		if (enemiesAlive && !Assets.s.snd("battle").isPlaying) {
+			Assets.s.snd("ambient").stop();
+			Assets.s.snd("battle").loop = true;
+			Assets.s.snd("battle").play();
 		}
 
-		if (!enemiesAlive && _battleSoundChannel) {
-			_battleSoundChannel.stop();
-			_battleSoundChannel = null;
-
-			_ambientSoundChannel = Assets.s.snd("ambient").play(0, 1000, new SoundTransform(0.5));
+		if (!enemiesAlive && !Assets.s.snd("ambient").isPlaying) {
+			Assets.s.snd("battle").stop();
+			Assets.s.snd("ambient").loop = true;
+			Assets.s.snd("ambient").setVolume(0.5);
+			Assets.s.snd("ambient").play();
 		}
-		*/
 	}
 
 	// private _ambientSoundChannel: SoundChannel;
@@ -444,6 +463,19 @@ export class Game {
 		//console.log('touch', evt.event.type, evt.event.buttons)
 
 		if (evt.event.type == "pointerdown") {
+			if (this._modalScreen) {
+				this.ui.removeControl(this._modalScreen);
+				this._modalScreen = null;
+				if (this._modalSubscreens.length > 0) {
+					const lastScreen = this._modalSubscreens.pop()!
+					this.ui.addControl(lastScreen)
+					this._modalScreen = lastScreen
+				}
+
+				return;
+			}
+
+
 			if (this._title) {
 				this._title.dispose();
 				this._title = undefined;
@@ -502,6 +534,8 @@ export class Game {
 
 	public keyDown(evtContainer: KeyboardInfo): void {
 		const evt = evtContainer.event;
+		if (evt.type != "keydown") return;
+
 		console.log('keyDown', evt.keyCode);
 
 		if (evt.keyCode == Keyboard.Q) this._player.useFlameLance(this._mouseWorldPosition);
@@ -518,15 +552,25 @@ export class Game {
 		//if (evt.keyCode == Keyboard.P) Starling.current.showStats = !Starling.current.showStats;
 
 		if (evt.keyCode == Keyboard.F2) {
-			// @TODO
-			//this._help = new Image(Assets.s.help);
-			//addChild(_help);
+			this.showScreen("help");
 		}
 	}
 
-	private showHelpScreen() {
-		// @TODO
-		//this._help = new Image(Assets.s.help);
-		//addChild(_help);
+	showScreen(screen: string) {
+		console.log("showing screen", screen)
+		if (this._modalScreen) {
+			console.log('pushing prev screen onto stack')
+			this.ui.removeControl(this._modalScreen);
+			this._modalSubscreens.push(this._modalScreen);
+			this._modalScreen = null;
+		}
+
+		const img = new Image("", `assets/ld25/${screen}.png`);
+		img.width = 1;
+		img.height = 1;
+		img.left = 0;
+		img.top = 0;
+		this.ui.addControl(img);
+		this._modalScreen = img;
 	}
 }

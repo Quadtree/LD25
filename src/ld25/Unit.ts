@@ -1,11 +1,14 @@
-import { int } from "@babylonjs/core";
+import { DynamicTexture, int, Mesh, MeshBuilder, StandardMaterial, Vector3 } from "@babylonjs/core";
 import { Actor } from "./Actor";
 import { Assets } from "./Assets";
 import { Box2DT } from "./Box2DT";
 import { copyVector, subtractVectors } from "./util";
+import { Game } from "./Game";
 
 export class Unit extends Actor {
 	_dest: Box2DT.b2Vec2 = new Box2D.b2Vec2();
+
+	textMesh: Mesh | null = null;
 
 	protected _messageTimer: int = 0;
 
@@ -102,21 +105,61 @@ export class Unit extends Actor {
 			this._body.SetFixedRotation(false);
 		}
 
+		if (this.textMesh) {
+			this.textMesh.position = new Vector3(
+				this._body.GetPosition().x,
+				this._body.GetPosition().y + 1,
+				-0.075,
+			);
+		}
+
 		// @TODO
 		// _message.x = (_image.x - Game.s._camPos.x - 4) * 24 + (Starling.current.viewPort.width / 2);
 		// _message.y = (_image.y - Game.s._camPos.y - 3) * 24 + (Starling.current.viewPort.height / 2);
 
-		// _messageTimer--;
-		// if (_messageTimer == 0) _message.text = "";
+		this._messageTimer--;
+		if (this._messageTimer <= 0 && this.textMesh) {
+			this.textMesh.dispose();
+			this.textMesh = null;
+		}
 	}
 
 	public setMessage(...msgs: string[]): void {
-		console.log(...msgs)
 		var msg: string = msgs[Math.floor(Math.random() * msgs.length)];
+		console.log(msg)
 
-		// @TODO
-		//_messageTimer = msg.length * 10 + 40;
-		//_message.text = msg;
+		if (this.textMesh) {
+			this.textMesh.dispose();
+			this.textMesh = null;
+		}
+
+		const font = "72px Arial";
+
+		const temp = new DynamicTexture("DynamicTexture", 64, Game.s.scene);
+		const tmpctx = temp.getContext();
+		tmpctx.font = font;
+		const DTWidth = tmpctx.measureText(msg).width;
+
+		const planeHeight = 0.75;
+		const DTHeight = 72; //or set as wished
+		const ratio = planeHeight / DTHeight;
+		const planeWidth = DTWidth * ratio;
+
+		const dynamicTexture = new DynamicTexture("DynamicTexture", { width: DTWidth, height: DTHeight }, Game.s.scene, false);
+		const mat = new StandardMaterial("mat", Game.s.scene);
+		mat.emissiveTexture = dynamicTexture;
+		mat.opacityTexture = dynamicTexture;
+		dynamicTexture.drawText(msg, null, null, font, "#FFFFFF", null, true); //use of null, null centers the text
+
+		console.log('plane size', planeWidth, planeHeight)
+
+		const plane = MeshBuilder.CreatePlane("plane", { width: planeWidth, height: planeHeight }, Game.s.scene);
+		plane.material = mat;
+
+		plane.visibility = 0.9999;
+		this.textMesh = plane;
+
+		this._messageTimer = msg.length * 10 + 40;
 	}
 
 	public override keep(): Boolean {

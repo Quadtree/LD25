@@ -4,6 +4,7 @@ import { Box2DT } from "./Box2DT";
 import { Assets } from "./Assets";
 import { Game } from "./Game";
 import { uint } from "./Common";
+import { parseFlexColor, slightlyRandomizeVector } from "./util";
 
 export class Villager extends Unit {
 	protected _hasMoney: boolean = true;
@@ -15,7 +16,7 @@ export class Villager extends Unit {
 	}
 
 	public constructor(pos: Box2DT.b2Vec2) {
-		super(pos);
+		super(slightlyRandomizeVector(pos));
 
 		this._coin = new Sprite("", Assets.s.tex("coin"));
 		//this._coin.pivotX = _image.texture.width / 2;
@@ -33,16 +34,14 @@ export class Villager extends Unit {
 		this._coin.isVisible = this._hasMoney;
 		this._coin.position.x = this._image.position.x;
 		this._coin.position.y = this._image.position.y - 1.35 + Math.sin(this._coinPosition) * 0.25;
+		this._coin.position.z = -0.05;
 
 		this._coinPosition += 0.1;
 
-		// @TODO
-		/*
 		if (this._hasMoney)
-			this._minimapGraphic.color = 0xFFFFFF00;
+			this._minimapGraphic.color = parseFlexColor(0xFFFFFF00);
 		else
-			this._minimapGraphic.color = 0xFF00FF00;
-		*/
+			this._minimapGraphic.color = parseFlexColor(0xFF00FF00);
 	}
 
 	protected override get texture(): string {
